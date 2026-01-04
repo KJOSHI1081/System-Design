@@ -80,3 +80,24 @@ How to keep the cache and DB in sync?
 * **Cache Hit Ratio:** The primary metric of health.
 * **P99 Latency:** Tracking tail latency to identify "noisy neighbors" in multi-tenant setups.
 * **Eviction Rate:** High eviction rates with low hit rates suggest the cache size is too small for the working set.
+
+## 7. Summary & Operational Excellence
+
+### Performance & Cost Trade-offs
+| Feature | Senior Staff Decision | Justification |
+| :--- | :--- | :--- |
+| **Eviction** | W-TinyLFU | Higher CPU overhead than LRU, but provides a superior hit rate for frequency-heavy workloads. |
+| **Consistency** | Eventual (Write-around) | Small window of stale data; significantly lower write latency and reduced DB pressure. |
+| **Network** | Protobuf over gRPC | More complex than JSON/REST, but drastically reduces payload size and serialization CPU cycles. |
+| **Deployment** | Multi-AZ (Availability Zones) | Survives a total data center outage; essential for Tier-0 services. |
+
+### Monitoring & Observability (The "Staff" Lens)
+A Senior Staff Engineer doesn't just look at "up/down." We monitor:
+* **Cache Hit Ratio:** The primary indicator of efficiency. A drop usually signifies a change in traffic patterns or a "poison pill" deployment.
+* **P99 Latency:** We track tail latency. High P99s often indicate "Stop-the-world" Garbage Collection or network congestion.
+* **Eviction Rate:** If the eviction rate is high but the hit ratio is low, it suggests the "Working Set" of data has outgrown the allocated RAM.
+* **Hot Shard Detection:** Automated alerting when a single node's CPU/Network exceeds the cluster average by >30%.
+
+### Cost Estimation (Back-of-the-Envelope)
+* **Memory:** To store 100M keys (avg 1KB each) = ~100GB of RAM.
+* **Bandwidth:** At 1M RPS (1KB per req) = 1GB/s throughput. This requires a 10Gbps+ network interface per node or a larger cluster to spread the I/O load.
